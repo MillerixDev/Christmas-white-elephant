@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Christmas Parcel Steal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* One visual world: a green card-table felt under warm lamp light. Single theme by choice. */
+  --felt:#123b2e; --felt-deep:#0a2a1f; --card:#18483a; --line:#2c6150;
+  --ink:#f7f1e6; --muted:#b4c8bd; --gold:#eab84b; --berry:#e0525b; --ok:#7fd49b;
+  --display:"Bricolage Grotesque", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Layout: tabs → table (the middle + seats) with a dice rail; stacks to one column on phones */
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(ellipse at 50% -10%, #1d5a45 0%, var(--felt) 45%, var(--felt-deep) 100%) fixed;background-color:var(--felt-deep);color:var(--ink);font:16px/1.5 var(--body)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.3rem;font-weight:800}
+h3{font-size:1.05rem;font-weight:600}
+p{margin:0}
+a{color:var(--gold)}
+.wrap{max-width:1120px;margin:0 auto;padding:16px 16px 64px;display:grid;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+.sub{color:var(--muted);font-size:.95rem}
+nav.tabs{display:flex;gap:6px;background:rgba(0,0,0,.25);padding:4px;border-radius:999px}
+nav.tabs a{text-decoration:none;color:var(--muted);padding:7px 14px;border-radius:999px;font-weight:600;font-size:.92rem}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--felt-deep)}
+.banner{background:rgba(234,184,75,.12);border:1px solid rgba(234,184,75,.45);padding:10px 14px;border-radius:12px;font-size:.93rem}
+.panel{background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:12px}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-weight:700;background:var(--gold);color:#2a1b02}
+.btn.alt{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.red{background:var(--berry);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:6px 10px;font-size:.85rem;border-radius:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.8rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.pill.live{background:rgba(224,82,91,.18);border-color:rgba(224,82,91,.6)}
+.pill.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--berry);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+
+/* table layout */
+.game{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}
+@media (max-width:820px){.game{grid-template-columns:1fr}}
+.middle{min-height:170px;border-radius:22px;padding:18px;background:repeating-linear-gradient(0deg,rgba(255,255,255,.015) 0 2px,transparent 2px 4px),rgba(0,0,0,.22);border:2px dashed rgba(255,255,255,.12);display:grid;gap:10px}
+.middle .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pile{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;min-height:96px}
+.empty{color:var(--muted);font-style:italic;font-size:.93rem}
+.seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.seat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:8px;align-content:start;transition:box-shadow .2s, border-color .2s}
+.seat.turn{border-color:var(--gold);box-shadow:0 0 0 3px rgba(234,184,75,.25)}
+.seat .nm{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700}
+.seat .count{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600;font-size:.85rem}
+.seat .pile{min-height:70px;gap:10px}
+.turnflag{font-size:.72rem;background:var(--gold);color:#2a1b02;padding:2px 8px;border-radius:999px;font-weight:800;text-transform:uppercase}
+
+/* parcels */
+.parcel{position:relative;border:0;padding:0;border-radius:6px;box-shadow:0 6px 0 rgba(0,0,0,.25),0 10px 18px rgba(0,0,0,.3);transition:transform .15s;flex:none}
+.parcel:hover{transform:translateY(-3px) rotate(-1deg)}
+.parcel.static{cursor:default}
+.parcel.static:hover{transform:none}
+.parcel.target{animation:wiggle 1s infinite}
+@keyframes wiggle{25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+.parcel .rv,.parcel .rh{position:absolute;background:var(--rib)}
+.parcel .rv{top:0;bottom:0;left:50%;width:10px;transform:translateX(-50%)}
+.parcel .rh{left:0;right:0;top:50%;height:10px;transform:translateY(-50%)}
+.parcel .bow{position:absolute;left:50%;top:-12px;transform:translateX(-50%);width:34px;height:18px}
+.parcel .bow::before,.parcel .bow::after{content:"";position:absolute;top:0;width:16px;height:16px;border:4px solid var(--rib);border-radius:50% 50% 50% 0}
+.parcel .bow::before{left:0;transform:rotate(-30deg)}
+.parcel .bow::after{right:0;transform:scaleX(-1) rotate(-30deg)}
+.parcel .tag{position:absolute;right:-8px;bottom:-8px;background:#f7f1e6;color:#3a2a14;font:800 .75rem/1 var(--display);padding:4px 6px;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.35);font-variant-numeric:tabular-nums}
+.sz-s{width:58px;height:50px}.sz-m{width:78px;height:64px}.sz-l{width:100px;height:80px}.sz-long{width:118px;height:46px}.sz-tall{width:58px;height:92px}
+.mini .sz-s{width:44px;height:38px}.mini .sz-m{width:56px;height:46px}.mini .sz-l{width:70px;height:56px}.mini .sz-long{width:82px;height:34px}.mini .sz-tall{width:42px;height:66px}
+.mini .parcel .rv{width:7px}.mini .parcel .rh{height:7px}.mini .parcel .bow{transform:translateX(-50%) scale(.75);top:-10px}
+.pat-stripes{background:repeating-linear-gradient(45deg,var(--c1) 0 9px,var(--c2) 9px 18px)}
+.pat-dots{background:radial-gradient(var(--c2) 22%,transparent 25%) 0 0/14px 14px,var(--c1)}
+.pat-check{background:conic-gradient(var(--c2) 25%,var(--c1) 0 50%,var(--c2) 0 75%,var(--c1) 0) 0 0/18px 18px}
+.pat-confetti{background:radial-gradient(circle at 30% 30%,var(--c2) 9%,transparent 11%) 0 0/16px 16px,radial-gradient(circle at 70% 70%,var(--rib) 7%,transparent 9%) 0 0/16px 16px,var(--c1)}
+.pat-plain{background:linear-gradient(160deg,rgba(255,255,255,.18),transparent 55%),var(--c1)}
+.pat-kraft{background:repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 2px,transparent 2px 7px),#b98858}
+.pat-kraft .rv,.pat-kraft .rh{background:#f3ead8;width:4px}
+.pat-kraft .rh{width:auto;height:4px}
+
+/* opened gift */
+.gift{width:100%;background:#f7f1e6;color:#2b2318;border-radius:14px;padding:10px;display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center;animation:pop .45s ease-out}
+.gift img,.gift .ph{width:64px;height:64px;border-radius:10px;object-fit:cover;background:#e8dcc6;display:grid;place-items:center;font:800 1.4rem var(--display);color:#9b7b52}
+.gift .t{font-weight:700;line-height:1.25}
+.gift .m{font-size:.8rem;color:#6b5b45}
+.gift a{color:#8a2430;font-weight:700;font-size:.85rem}
+@keyframes pop{0%{transform:scale(.6) rotate(-6deg);opacity:0}70%{transform:scale(1.05)}100%{transform:none;opacity:1}}
+
+/* dice rail */
+.rail{position:sticky;top:12px;display:grid;gap:12px}
+.die{width:96px;height:96px;margin:4px auto;background:#fbf7ef;border-radius:20px;box-shadow:inset 0 -6px 0 #d9cfbd,0 8px 16px rgba(0,0,0,.35);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:14px;gap:2px}
+.die i{width:16px;height:16px;border-radius:50%;background:#26201a;place-self:center;visibility:hidden}
+.die.six{box-shadow:inset 0 -6px 0 #d9cfbd,0 0 0 4px var(--gold),0 8px 24px rgba(234,184,75,.45)}
+.whose{text-align:center;font-weight:700}
+.whose b{font-family:var(--display);font-size:1.35rem;display:block}
+.manual{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.manual button{border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:8px;padding:6px 0;font-weight:700;font-variant-numeric:tabular-nums}
+.msg{background:rgba(234,184,75,.14);border-left:4px solid var(--gold);padding:10px 12px;border-radius:8px;font-weight:600}
+.timer{font-variant-numeric:tabular-nums;font-family:var(--display);font-size:1.6rem;font-weight:800}
+.log{font-size:.82rem;color:var(--muted);display:grid;gap:2px;max-height:150px;overflow:auto}
+
+/* forms */
+form.gf{display:grid;gap:14px}
+.field{display:grid;gap:5px}
+.field label,.lbl{font-weight:600;font-size:.9rem}
+.hint{color:var(--muted);font-size:.82rem}
+input[type=text],input[type=url],input[type=number],textarea,select{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{min-height:90px;resize:vertical;font-size:.85rem}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-weight:600;font-size:.9rem}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--ink);color:var(--felt-deep);border-color:var(--ink)}
+.seg label:has(input:focus-visible){outline:3px solid var(--gold)}
+.swatch{width:16px;height:16px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.3)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.preview{display:grid;place-items:center;min-height:180px;background:rgba(0,0,0,.22);border-radius:18px;border:2px dashed rgba(255,255,255,.12)}
+.photo-prev{width:72px;height:72px;border-radius:10px;object-fit:cover}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:.75rem;word-break:break-all;background:rgba(0,0,0,.3);padding:10px;border-radius:10px;max-height:120px;overflow:auto}
+
+.plist{display:grid;gap:8px}
+.pitem{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.pitem .grow{flex:1;min-width:0}
+.ship{display:grid;gap:8px;padding:0;margin:0}
+.ship li{list-style:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.ship ul{padding:0;margin:0}
+.flag{font-size:.8rem;color:var(--gold)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--felt-deep);padding:10px 16px;border-radius:12px;font-weight:700;box-shadow:0 8px 20px rgba(0,0,0,.4);z-index:50}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:40;padding:16px}
+.modal .box{background:var(--felt);border:1px solid var(--line);border-radius:18px;padding:18px;width:min(360px,100%);display:grid;gap:10px}
+.modal .opts{display:grid;gap:6px}
+.modal .opts button{text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:10px;padding:9px 12px;font-weight:600}
+.big-end{text-align:center;padding:22px;border-radius:18px;background:rgba(224,82,91,.15);border:1px solid rgba(224,82,91,.5)}
+.idbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.idbar b{font-family:var(--display)}
+.you{font-size:.7rem;background:var(--ink);color:var(--felt-deep);padding:2px 7px;border-radius:999px;font-weight:800;text-transform:uppercase;margin-left:6px}
+.seat.mine{background:#1d5443}
+.safe{position:relative}
+.safe::after{content:"Safe";position:absolute;top:-8px;left:-6px;background:var(--ok);color:#0b2a1f;font:800 .68rem/1 var(--body);padding:4px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+.gift.target{outline:3px dashed var(--gold);outline-offset:3px;cursor:pointer;animation:none}
+button.giftbtn{all:unset;display:block;width:100%;cursor:pointer;border-radius:14px}
+button.giftbtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.yourturn{background:var(--gold);color:#2a1b02;border-radius:14px;padding:12px 14px;font-weight:800;text-align:center;font-family:var(--display);font-size:1.15rem}
+.hostbox{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+.mylist{display:grid;gap:10px}
+.mylist .buy{background:#f7f1e6;color:#2b2318;border-radius:14px;padding:12px 14px;display:grid;gap:4px}
+.mylist .buy a{color:#8a2430;font-weight:700}
+.status{display:grid;gap:4px;font-size:.9rem}
+.status .ok{color:var(--ok)}
+.tabs2{display:flex;gap:6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="sub">Loading the table…</p></div>
+<script type="module">
+/* Firebase config for the christmas-white-elephant project */
+const firebaseConfig = {
+  apiKey: "AIzaSyDENYEMCCuznYZBaBdLgiTcOUuhxb1Uq6c",
+  authDomain: "christmas-white-elephant.firebaseapp.com",
+  projectId: "christmas-white-elephant",
+  storageBucket: "christmas-white-elephant.firebasestorage.app",
+  messagingSenderId: "28405498639",
+  appId: "1:28405498639:web:beacf01fc566958736f47a"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, writeBatch, runTransaction, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const COLORS={
+  red:{c1:"#b8242f",c2:"#efe1c8",rib:"#f2c14e",label:"Red"},
+  green:{c1:"#1f6b45",c2:"#d7e8c9",rib:"#e0525b",label:"Green"},
+  gold:{c1:"#d9a63a",c2:"#fff1c9",rib:"#7b1e2b",label:"Gold"},
+  blue:{c1:"#22477a",c2:"#cfe0f5",rib:"#f4f1ea",label:"Blue"},
+  pink:{c1:"#d2668a",c2:"#ffe0ea",rib:"#2f6b4f",label:"Pink"},
+  silver:{c1:"#c4c8d0",c2:"#ffffff",rib:"#b8242f",label:"Silver"}
+};
+const PATTERNS={stripes:"Candy stripes",dots:"Polka dots",check:"Check",confetti:"Confetti",plain:"Shiny plain",kraft:"Brown paper & string"};
+const SIZES={s:"Small box",m:"Medium box",l:"Big box",long:"Long & flat",tall:"Tall"};
+const STORES={uk:"Amazon UK",us:"Amazon US",other:"Another shop"};
+const COUNTRY={uk:"UK",us:"US"};
+const ROLL_PHASES=["grab","steal","steal2"];
+
+const S={fs:null,uid:null,me:null,isHost:false,hostClaim:false,local:false,stateExists:false,loaded:false,
+  parcels:{},contents:{},game:null,fetching:{},
+  ui:{showTime:false,move:null,face:6,animating:false,lastRollT:0,toast:"",draft:null,saved:false,saving:false,joinMode:"new",turnKey:"",ending:"",busy:false}};
+
+function defaultGame(){return {phase:"setup",order:[],turn:0,hold:{},opened:{},safe:{},kept:{},awaiting:"",grabDone:false,
+  settings:{budget:"£20 / $25",passLeft:true,minMin:5,maxMin:10,min2:3,max2:6},timerEnd:0,last:null,log:[]};}
+function normalize(d){const b=defaultGame();if(!d)return b;const g=Object.assign(b,JSON.parse(JSON.stringify(d)));g.settings=Object.assign(defaultGame().settings,g.settings||{});["hold","opened","safe","kept"].forEach(k=>{g[k]=g[k]||{};});return g;}
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function safeUrl(u){try{const x=new URL(u);return (x.protocol==="https:"||x.protocol==="http:")?x.href:"";}catch(e){return "";}}
+function toast(t){S.ui.toast=t;renderToast();clearTimeout(toast._t);toast._t=setTimeout(()=>{S.ui.toast="";renderToast();},3500);}
+function pageLink(){return location.href.split("#")[0].split("?")[0];}
+
+/* ---------- game helpers (all take a game object) ---------- */
+function giftIds(){return Object.keys(S.parcels).sort((a,b)=>(S.parcels[a].createdAt||0)-(S.parcels[b].createdAt||0));}
+function ordOf(g){
+  const ids=giftIds();
+  if(g.phase==="setup"){const o=(g.order||[]).filter(id=>S.parcels[id]);ids.forEach(id=>{if(!o.includes(id))o.push(id);});return o;}
+  return (g.order||[]).filter(id=>S.parcels[id]);
+}
+function holdOf(g,p){return (g.hold||{})[p]||"";}
+function curOf(g){const o=ordOf(g);return o.length?o[(g.turn||0)%o.length]:"";}
+function middleOf(g){return ordOf(g).filter(p=>!holdOf(g,p));}
+function heldOf(g,pl){return ordOf(g).filter(p=>holdOf(g,p)===pl);}
+function numOf(g,p){return ordOf(g).indexOf(p)+1;}
+function advance(g){const n=ordOf(g).length;g.turn=n?((g.turn||0)+1)%n:0;}
+function stealTargets(g,cur){return ordOf(g).filter(p=>{const h=holdOf(g,p);if(!h||h===cur)return false;if(g.phase==="steal")return true;if(g.phase==="steal2")return !g.safe[p];return false;});}
+function movable(g){return ordOf(g).filter(p=>holdOf(g,p)&&!(g.phase==="steal2"&&g.safe[p]));}
+function passOn(g){const o=ordOf(g);movable(g).forEach(p=>{const h=holdOf(g,p);g.hold[p]=o[(o.indexOf(h)+1)%o.length];});}
+function nameOf(id){return (S.parcels[id]&&S.parcels[id].name)||"Someone";}
+function gift(id){return Object.assign({},S.parcels[id]||{},S.contents[id]||{});}
+function me(){return S.me&&S.parcels[S.me]?S.me:null;}
+function needsKeep(g){return ordOf(g).filter(pl=>heldOf(g,pl).length&&!g.kept[pl]);}
+
+/* ---------- transactions ---------- */
+async function tx(fn){
+  if(S.ui.busy)return; S.ui.busy=true;
+  try{
+    if(S.local){const g=normalize(S.game);const r=fn(g);if(r!==false){if(r)g.log=[r].concat(g.log||[]).slice(0,14);S.game=g;onGame();}}
+    else await runTransaction(S.fs,async t=>{
+      const ref=doc(S.fs,"state","main");const snap=await t.get(ref);
+      const g=normalize(snap.exists()?snap.data():null);
+      const r=fn(g); if(r===false)return;
+      if(r)g.log=[r].concat(g.log||[]).slice(0,14);
+      t.set(ref,g);
+    });
+  }catch(e){toast("Couldn't do that just now. Check your connection and try again.");}
+  S.ui.busy=false;
+}
+
+/* ---------- player actions ---------- */
+function roll(){
+  tx(g=>{
+    const cur=curOf(g); if(!ROLL_PHASES.includes(g.phase)||g.awaiting||cur!==me())return false;
+    const n=1+Math.floor(Math.random()*6), who=nameOf(cur);
+    g.last={n:n,by:cur,t:Date.now()};
+    if(g.phase==="grab"){
+      if(n===6&&middleOf(g).length){g.awaiting="pick";return who+" rolled a 6!";}
+      advance(g);return who+" rolled a "+n+".";
+    }
+    if(n===6&&stealTargets(g,cur).length){g.awaiting="steal";return who+" rolled a 6! Time to steal.";}
+    if(n===3&&g.settings.passLeft&&movable(g).length){passOn(g);advance(g);return who+" rolled a 3: everyone passes"+(g.phase==="steal2"?" their unsafe gifts":" their parcels")+" to the next person!";}
+    advance(g);return who+" rolled a "+n+".";
+  });
+}
+function pick(p){
+  tx(g=>{const cur=curOf(g);if(g.phase!=="grab"||g.awaiting!=="pick"||cur!==me()||holdOf(g,p))return false;
+    g.hold[p]=cur;g.awaiting="";advance(g);g.grabDone=ordOf(g).every(q=>g.hold[q]);return nameOf(cur)+" grabbed parcel "+numOf(g,p)+".";});
+}
+function steal(p){
+  tx(g=>{const cur=curOf(g);if(g.awaiting!=="steal"||cur!==me()||!stealTargets(g,cur).includes(p))return false;
+    const from=holdOf(g,p);g.hold[p]=cur;g.awaiting="";advance(g);
+    const what=g.opened[p]&&S.contents[p]&&S.contents[p].title?"“"+S.contents[p].title+"”":"parcel "+numOf(g,p);
+    return nameOf(cur)+" stole "+what+" from "+nameOf(from)+"!";});
+}
+function keep(p){
+  tx(g=>{const m=me();if(g.phase!=="keep"||!m||holdOf(g,p)!==m||g.kept[m])return false;
+    g.kept[m]=p;g.opened[p]=true;g.safe[p]=true;return nameOf(m)+" opened parcel "+numOf(g,p)+" and it's safe!";});
+}
+
+/* ---------- host actions ---------- */
+function startGame(){
+  tx(g=>{if(g.phase!=="setup")return false;const o=ordOf(g);if(o.length<2)return false;
+    for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]];}
+    Object.assign(g,{order:o,hold:{},opened:{},safe:{},kept:{},turn:0,phase:"grab",awaiting:"",grabDone:false,last:null});
+    return "Round 1 started! "+nameOf(o[0])+" rolls first. Roll a 6 to grab a parcel.";});
+}
+function timerFor(g,round){const s=g.settings;const lo=Math.max(1,+(round===2?s.min2:s.minMin)||3),hi=Math.max(lo,+(round===2?s.max2:s.maxMin)||lo);return Date.now()+Math.round((lo+Math.random()*(hi-lo))*60000);}
+function startSteal(){tx(g=>{if(g.phase!=="grab")return false;g.phase="steal";g.awaiting="";g.timerEnd=timerFor(g,1);return "Round 2 started: the hidden timer is running. Roll a 6 to steal.";});}
+function endPhase(ph,auto){
+  tx(g=>{
+    if(g.phase!==ph)return false; if(auto&&Date.now()<g.timerEnd)return false;
+    g.awaiting="";
+    if(ph==="steal"){g.phase="keep";return (auto?"Time's up! ":"")+"Round 2½: everyone opens one of their parcels. That gift is safe.";}
+    if(ph==="steal2"){g.phase="done";return (auto?"Time's up! ":"")+"Game over. Check your shopping list!";}
+    return false;
+  });
+}
+function startRound3(){
+  tx(g=>{if(g.phase!=="keep")return false;
+    ordOf(g).forEach(pl=>{const mine=heldOf(g,pl);if(mine.length&&!g.kept[pl]){const p=mine[Math.floor(Math.random()*mine.length)];g.kept[pl]=p;g.safe[p]=true;}});
+    ordOf(g).forEach(p=>{g.opened[p]=true;});
+    g.phase="steal2";g.awaiting="";g.timerEnd=timerFor(g,2);
+    return "Round 3: everything is open! Roll a 6 to steal any gift that isn't safe.";});
+}
+function skipTurn(){tx(g=>{if(!ROLL_PHASES.includes(g.phase))return false;const c=curOf(g);g.awaiting="";advance(g);return "Skipped "+nameOf(c)+"'s turn.";});}
+function moveTo(p,dest){S.ui.move=null;renderModal();
+  tx(g=>{if(g.phase==="setup"||g.phase==="done")return false;if(dest)g.hold[p]=dest;else delete g.hold[p];if(g.phase==="grab")g.grabDone=ordOf(g).every(q=>g.hold[q]);return "Host moved parcel "+numOf(g,p)+" to "+(dest?nameOf(dest):"the middle")+".";});}
+function newGame(){tx(g=>{const keepS={settings:g.settings,hostUid:g.hostUid};Object.assign(g,defaultGame(),keepS);return "New game: back to setup.";});}
+function setSetting(k,v){tx(g=>{if(g.phase!=="setup")return false;g.settings[k]=v;return "";});}
+
+/* ---------- clicks on parcels / gifts ---------- */
+function clickParcel(p){
+  const g=S.game, m=me(), cur=curOf(g);
+  if(g.phase==="grab"&&g.awaiting==="pick"&&cur===m){if(holdOf(g,p)){toast("Pick a parcel from the middle.");return;}pick(p);return;}
+  if(g.awaiting==="steal"&&cur===m){if(!stealTargets(g,cur).includes(p)){toast(g.phase==="steal2"&&g.safe[p]?"That gift is safe. Pick another one.":"Pick something another player is holding.");return;}steal(p);return;}
+  if(g.phase==="keep"&&m&&holdOf(g,p)===m&&!g.kept[m]){keep(p);return;}
+  if(S.isHost&&g.phase!=="setup"&&g.phase!=="done"&&!S.local){S.ui.move=p;renderModal();return;}
+  if(S.isHost&&S.local&&g.phase!=="setup"&&g.phase!=="done"){S.ui.move=p;renderModal();}
+}
+
+/* ---------- sound & attention ---------- */
+let actx=null;
+function audio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}return actx;}
+function chime(notes){const a=actx;if(!a||a.state!=="running")return;try{const t=a.currentTime;(notes||[784,988,1175]).forEach((f,i)=>{const o=a.createOscillator(),gn=a.createGain();o.type="triangle";o.frequency.value=f;gn.gain.setValueAtTime(0,t+i*.14);gn.gain.linearRampToValueAtTime(.22,t+i*.14+.02);gn.gain.exponentialRampToValueAtTime(.001,t+i*.14+.5);o.connect(gn).connect(a.destination);o.start(t+i*.14);o.stop(t+i*.14+.6);});}catch(e){}}
+
+/* ---------- photo ---------- */
+function shrinkSrc(src,max,q){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const sc=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",q));};img.onerror=()=>rej(new Error("That file isn't an image I can read."));img.src=src;});}
+function shrinkPhoto(file,max,q){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(new Error("Couldn't read that image."));r.onload=()=>{shrinkSrc(r.result,max,q).then(res,rej);};r.readAsDataURL(file);});}
+
+/* ---------- render helpers ---------- */
+function parcelHTML(id,g,opts){
+  opts=opts||{}; const col=COLORS[g.color]||COLORS.red;
+  const cls=["parcel","sz-"+(SIZES[g.size]?g.size:"m"),"pat-"+(PATTERNS[g.pattern]?g.pattern:"stripes")];
+  if(opts.static)cls.push("static"); if(opts.target)cls.push("target");
+  const label=opts.label||("Parcel "+(opts.num||""));
+  const tag=opts.num?`<span class="tag">${opts.num}</span>`:"";
+  const inner=`<span class="rv"></span><span class="rh"></span><span class="bow"></span>${tag}`;
+  const style=`--c1:${col.c1};--c2:${col.c2};--rib:${col.rib}`;
+  if(opts.static)return `<span class="${cls.join(" ")}" style="${style}" role="img" aria-label="${esc(label)}">${inner}</span>`;
+  return `<button type="button" class="${cls.join(" ")}" style="${style}" data-parcel="${esc(id)}" aria-label="${esc(label)}">${inner}</button>`;
+}
+function giftCard(p,opts){
+  opts=opts||{}; const g=gift(p), G=S.game; const url=safeUrl(g.link||"");
+  const safe=G.safe&&G.safe[p];
+  let inner;
+  if(!g.title)inner=`<div class="gift"><span class="ph">…</span><div><div class="t">Unwrapping…</div><div class="m">No. ${numOf(G,p)} · from ${esc(g.name)}</div></div></div>`;
+  else{
+    const photo=(typeof g.photo==="string"&&/^data:image\/(jpeg|png|webp);base64,/.test(g.photo))?g.photo:"";
+    const pic=photo?`<img src="${photo}" alt="">`:`<span class="ph">${esc(g.title.trim().charAt(0).toUpperCase()||"?")}</span>`;
+    inner=`<div class="gift${opts.target?" target":""}">${pic}<div><div class="t">${esc(g.title)}</div><div class="m">No. ${numOf(G,p)} · chosen by ${esc(g.name)} · ${esc(STORES[g.store]||"")}</div>${url&&!opts.button?`<a href="${esc(url)}" target="_blank" rel="noopener">See it online</a>`:""}</div></div>`;
+  }
+  const wrap=`<div class="${safe?"safe":""}">${inner}</div>`;
+  if(opts.button)return `<button type="button" class="giftbtn" data-parcel="${esc(p)}" aria-label="Steal ${esc(g.title||"this gift")}">${wrap}</button>`;
+  return wrap;
+}
+function pipLayout(n){return {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]}[n]||[];}
+function dieHTML(n){const on=pipLayout(n);let s="";for(let i=0;i<9;i++)s+=`<i style="${on.includes(i)?"visibility:visible":""}"></i>`;return `<div class="die${n===6&&!S.ui.animating?" six":""}" id="die" role="img" aria-label="Die showing ${n}">${s}</div>`;}
+function drawDie(){const d=document.getElementById("die");if(d)d.outerHTML=dieHTML(S.ui.face);}
+function fmt(ms){ms=Math.max(0,ms);const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60;return m+":"+String(s).padStart(2,"0");}
+function animateTo(n){
+  const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){S.ui.face=n;drawDie();return;}
+  S.ui.animating=true;let k=8;
+  const tick=()=>{if(k-->0){S.ui.face=1+Math.floor(Math.random()*6);drawDie();setTimeout(tick,60);}else{S.ui.animating=false;S.ui.face=n;drawDie();}};tick();
+}
+
+/* ---------- views ---------- */
+function view(){const h=location.hash.replace("#","");if(["table","my-gift","how-to-play"].includes(h))return h;return S.game&&S.game.phase==="setup"&&!me()?"my-gift":"table";}
+const PHASE_LABEL={setup:"Setting up",grab:"Round 1 · Grab",steal:"Round 2 · Steal",keep:"Round 2½ · Open one",steal2:"Round 3 · Open & steal",done:"Game over"};
+
+function render(){
+  const app=document.getElementById("app");
+  if(!S.loaded){app.innerHTML=`<p class="sub">Loading the table…</p>`;return;}
+  const top=`<header class="top"><div><h1>Christmas Parcel Steal</h1><p class="sub">Roll a 6 to grab. Roll a 6 to steal. Keep whatever you're holding when the timer goes.</p></div>`;
+  if(!S.stateExists){app.innerHTML=`${top}</header>${createView()}`;bind();return;}
+  const v=view();
+  const nav=`<nav class="tabs" aria-label="Sections"><a href="#table" ${v==="table"?'aria-current="page"':""}>Game table</a><a href="#my-gift" ${v==="my-gift"?'aria-current="page"':""}>My gift</a><a href="#how-to-play" ${v==="how-to-play"?'aria-current="page"':""}>Rules</a></nav>`;
+  const body=v==="table"?tableView():v==="my-gift"?giftView():rulesView();
+  app.innerHTML=`${top}${nav}</header>${idBar()}${body}`;
+  bind(); renderModal();
+}
+
+function idBar(){
+  const m=me();
+  if(S.local){
+    const opts=ordOf(S.game).map(p=>`<option value="${esc(p)}" ${p===m?"selected":""}>${esc(nameOf(p))}</option>`).join("");
+    return `<div class="idbar"><span>Demo mode. Pretend to be <select id="demoAs" aria-label="Demo player" style="width:auto;display:inline-block">${opts}</select></span><span class="hint">Lets you test every player's turn on one screen.</span></div>`;
+  }
+  if(m)return `<div class="idbar"><span>Playing as <b>${esc(nameOf(m))}</b>${S.isHost?' <span class="you">Host</span>':""}</span><button class="btn alt sm" data-act="signout">Not you? Switch player</button></div>`;
+  return `<div class="idbar"><span>You're watching. ${S.game.phase==="setup"?"Add your gift to join the game.":"Sign in with your name and PIN to play."}</span><a class="btn sm" href="#my-gift" style="text-decoration:none">${S.game.phase==="setup"?"Join the game":"Sign in"}</a></div>`;
+}
+
+function createView(){
+  return `<section class="panel" style="max-width:520px"><h2>Set up this year's game</h2>
+  <p class="sub">Whoever does this becomes the host and can start each round. Choose a host PIN, so you can also host from another device later.</p>
+  <form class="gf" id="createForm" novalidate>
+    <div class="field"><label for="c-pin">Host PIN</label><input id="c-pin" type="text" inputmode="numeric" minlength="4" maxlength="12" autocomplete="off" placeholder="At least 4 characters"></div>
+    <div class="field"><label for="c-budget">Spending limit</label><input id="c-budget" type="text" value="£20 / $25"></div>
+    <button class="btn" type="submit">Create the game</button>
+  </form></section>`;
+}
+
+function tableView(){
+  const g=S.game, o=ordOf(g), cur=curOf(g), m=me();
+  const myPick=g.phase==="grab"&&g.awaiting==="pick"&&cur===m;
+  const myStealing=g.awaiting==="steal"&&cur===m;
+  const targets=myStealing?stealTargets(g,cur):[];
+  const mid=middleOf(g);
+  const midHTML=mid.length?mid.map(p=>parcelHTML(p,S.parcels[p],{num:numOf(g,p),target:myPick,static:!(myPick||(S.isHost&&g.phase!=="setup"))})).join(""):`<p class="empty">${g.phase==="setup"?"No gifts yet. Send friends the link so they can add theirs.":"The middle is empty."}</p>`;
+  const seats=o.map(pl=>{
+    const mine=heldOf(g,pl), isTurn=ROLL_PHASES.includes(g.phase)&&pl===cur, isMe=pl===m;
+    const items=mine.map(p=>{
+      const isTarget=targets.includes(p);
+      if(g.opened[p])return giftCard(p,{target:isTarget,button:isTarget||(S.isHost&&g.phase!=="done"&&g.phase!=="setup")});
+      const canKeep=g.phase==="keep"&&isMe&&!g.kept[m];
+      return parcelHTML(p,S.parcels[p],{num:numOf(g,p),target:isTarget||canKeep,static:!(isTarget||canKeep||(S.isHost&&g.phase!=="setup"&&g.phase!=="done")),label:canKeep?"Open parcel "+numOf(g,p):isTarget?"Steal parcel "+numOf(g,p):null});
+    }).join("");
+    const anyOpen=mine.some(p=>g.opened[p]);
+    const badge=isTurn?'<span class="turnflag">'+(g.awaiting?"Choosing":"Rolling")+"</span>":g.phase==="keep"&&mine.length?(g.kept[pl]?'<span class="count">Opened ✓</span>':'<span class="count">Choosing…</span>'):`<span class="count">${mine.length} ${mine.length===1?"gift":"gifts"}</span>`;
+    return `<section class="seat${isTurn?" turn":""}${isMe?" mine":""}" aria-label="${esc(nameOf(pl))}"><div class="nm"><span>${esc(nameOf(pl))}${isMe?'<span class="you">You</span>':""}</span>${badge}</div><div class="pile mini" style="${anyOpen?"display:grid;gap:10px":""}">${items||`<p class="empty">${g.phase==="setup"?"Waiting to play":g.phase==="done"?"Nothing this time":"Nothing yet"}</p>`}</div></section>`;
+  }).join("");
+  const middle=(g.phase!=="setup"&&!mid.length)?"":`<section class="middle" aria-label="The middle"><div class="hd"><h2>The middle</h2><span class="pill">${mid.length} of ${o.length} parcels</span></div><div class="pile">${midHTML}</div></section>`;
+  const top=g.phase==="setup"&&S.isHost?setupPanel():g.phase==="done"?doneHead():"";
+  const main=`<div style="display:grid;gap:16px">${top}${middle}<div class="seats">${seats||'<p class="empty">Players appear here as they add gifts.</p>'}</div>${g.phase==="done"?shippingList():""}</div>`;
+  return `<div class="game">${main}${rail()}</div>`;
+}
+
+function rail(){
+  const g=S.game, cur=curOf(g), m=me(), roll=ROLL_PHASES.includes(g.phase);
+  let c=`<div class="row"><span class="pill${roll?" live":""}">${PHASE_LABEL[g.phase]}</span></div>`;
+  if(roll){
+    const mine=cur===m;
+    if(mine&&!g.awaiting)c+=`<div class="yourturn" role="status">Your turn!</div>`;
+    c+=`<div class="whose">${g.awaiting?"Choosing":mine?"Roll the die":"Waiting for"}<b>${mine?"You":esc(nameOf(cur))}</b></div>${dieHTML(S.ui.face)}`;
+    if(g.awaiting==="pick")c+=`<div class="msg" role="status">${mine?"You rolled a 6! Tap a parcel in the middle.":esc(nameOf(cur))+" is choosing a parcel…"}</div>`;
+    else if(g.awaiting==="steal")c+=`<div class="msg" role="status">${mine?"You rolled a 6! Tap a "+(g.phase==="steal2"?"gift that isn't safe":"parcel")+" to steal it.":esc(nameOf(cur))+" is choosing what to steal…"}</div>`;
+    else if(g.phase==="grab"&&g.grabDone)c+=`<div class="msg" role="status">Every parcel has been grabbed. Waiting for the host to start round 2.</div>`;
+    if(mine&&!g.awaiting&&!(g.phase==="grab"&&g.grabDone))c+=`<button class="btn" data-act="roll" ${S.ui.busy||S.ui.animating?"disabled":""}>Roll the die</button>`;
+    if(g.phase!=="grab")c+=`<div class="panel" style="padding:12px;gap:6px"><div class="lbl">Hidden timer</div>${S.isHost&&S.ui.showTime?`<div class="timer" id="timeleft">${fmt(g.timerEnd-Date.now())}</div>`:`<div class="sub">Running. Nobody knows when it ends.</div>`}</div>`;
+  }else if(g.phase==="keep"){
+    const left=needsKeep(g);
+    if(m&&heldOf(g,m).length&&!g.kept[m])c+=`<div class="yourturn" role="status">Open one of your parcels</div><p class="sub">Tap one of your parcels to open it. That gift is safe and can't be stolen in round 3.</p>`;
+    else if(m&&g.kept[m])c+=`<div class="msg">Your gift is open and safe. Waiting for the others…</div>`;
+    c+=`<div class="status">${ordOf(g).filter(pl=>heldOf(g,pl).length).map(pl=>`<div class="${g.kept[pl]?"ok":""}">${g.kept[pl]?"✓":"…"} ${esc(nameOf(pl))}</div>`).join("")}</div>`;
+    if(!left.length)c+=`<p class="sub">Everyone has opened one. ${S.isHost?"Start round 3 when you're ready.":"The host will start round 3."}</p>`;
+  }else if(g.phase==="setup"){
+    c+=`<p class="sub">${S.isHost?"When everyone has added a gift, press Start. The game picks a random order.":"The host will start the game when everyone's on the call."}</p>`;
+  }else{
+    c+=`<p class="sub">That's a wrap! Your shopping list is at the top of the table.</p>`;
+  }
+  if(S.isHost)c+=hostControls();
+  if((g.log||[]).length)c+=`<div><div class="lbl">What happened</div><div class="log" aria-live="polite">${g.log.map(l=>`<div>${esc(l)}</div>`).join("")}</div></div>`;
+  return `<aside class="rail"><div class="panel">${c}</div></aside>`;
+}
+
+function hostControls(){
+  const g=S.game, n=ordOf(g).length; let h="";
+  if(g.phase==="setup")h+=`<button class="btn" data-act="start" ${n<2?"disabled":""}>Start the game</button>`;
+  if(g.phase==="grab")h+=`<button class="btn ${g.grabDone?"":"alt"}" data-act="steal" ${g.grabDone?"":"disabled"}>Start round 2 (steal)</button>`;
+  if(g.phase==="steal")h+=`<button class="btn red sm" data-act="end1">End round 2 now</button>`;
+  if(g.phase==="keep"){const left=needsKeep(g).length;h+=`<button class="btn ${left?"alt":""}" data-act="round3">Open everything & start round 3</button>${left?`<p class="hint">${left} still choosing. If you start now, the game opens a random one of theirs.</p>`:""}`;}
+  if(g.phase==="steal2")h+=`<button class="btn red sm" data-act="end2">End the game now</button>`;
+  if(ROLL_PHASES.includes(g.phase))h+=`<div class="row">${g.phase!=="grab"?`<button class="btn alt sm" data-act="peek">${S.ui.showTime?"Hide":"Peek at"} timer</button>`:""}<button class="btn alt sm" data-act="skip">Skip ${esc(nameOf(curOf(g)))}'s turn</button></div><p class="hint">Tap any parcel to move it by hand if something goes wrong.</p>`;
+  if(g.phase==="done")h+=`<button class="btn alt sm" data-act="new">Start a new game</button>`;
+  return `<div class="hostbox"><div class="lbl">Host controls</div>${h}</div>`;
+}
+
+function setupPanel(){
+  const s=S.game.settings, list=ordOf(S.game);
+  const items=list.map(p=>{const g=S.parcels[p];return `<div class="pitem"><span class="mini">${parcelHTML(p,g,{static:true})}</span><div class="grow"><b>${esc(g.name)}</b><div class="hint">Gift added · delivers to the ${COUNTRY[g.country]||"UK"}</div></div><button class="btn alt sm" data-remove="${esc(p)}" aria-label="Remove ${esc(g.name)}">Remove</button></div>`;}).join("");
+  return `<section class="panel" aria-label="Setup"><div class="row" style="justify-content:space-between"><h2>Before the call</h2><span class="pill">${list.length} player${list.length===1?"":"s"}</span></div>
+  <p class="sub">Send everyone this link. They add their gift with their name and a PIN, then play from their own phone or laptop. What's inside stays locked until it's opened in the game, even for you.</p>
+  <div class="row"><div class="code" style="flex:1;min-width:0">${esc(pageLink())}</div><button class="btn alt sm" data-act="copylink">Copy link</button></div>
+  <div class="plist">${items||'<p class="empty">No players yet.</p>'}</div>
+  <div class="row" style="gap:14px;align-items:end">
+    <div class="field" style="flex:1;min-width:140px"><label for="budget">Spending limit</label><input id="budget" type="text" value="${esc(s.budget)}"></div>
+  </div>
+  <div class="row" style="gap:14px;align-items:end">
+    <div class="field" style="width:130px"><label for="minMin">Round 2 timer from (min)</label><input id="minMin" type="number" min="1" max="60" value="${esc(s.minMin)}"></div>
+    <div class="field" style="width:90px"><label for="maxMin">to (min)</label><input id="maxMin" type="number" min="1" max="60" value="${esc(s.maxMin)}"></div>
+    <div class="field" style="width:130px"><label for="min2">Round 3 timer from (min)</label><input id="min2" type="number" min="1" max="60" value="${esc(s.min2)}"></div>
+    <div class="field" style="width:90px"><label for="max2">to (min)</label><input id="max2" type="number" min="1" max="60" value="${esc(s.max2)}"></div>
+  </div>
+  <label class="row" style="gap:8px"><input type="checkbox" id="passLeft" ${s.passLeft?"checked":""}> In the steal rounds, a 3 means everyone passes their gifts to the next person</label></section>`;
+}
+
+function shipNote(p,mine){
+  const g=S.game, gg=gift(p), win=holdOf(g,p), wc=(S.parcels[win]&&S.parcels[win].country)||"uk";
+  if(win===p)return (mine?"You":nameOf(p))+" kept "+(mine?"your":"their")+" own gift! Nothing to post.";
+  if(gg.store==="other")return `Check it delivers to the ${COUNTRY[wc]}.`;
+  if(gg.store&&gg.store!==wc)return `${nameOf(win)} lives in the ${COUNTRY[wc]}, so buy the same thing from Amazon ${COUNTRY[wc]}.`;
+  return `Order from ${STORES[gg.store]||"Amazon"} straight to ${nameOf(win)}'s address.`;
+}
+function doneHead(){
+  const g=S.game, m=me();
+  let mine="";
+  if(m){
+    const gg=gift(m), win=holdOf(g,m), url=safeUrl(gg.link||"");
+    const buy=gg.title?`<div class="buy"><div class="lbl" style="color:#6b5b45">You're buying</div><b>${esc(gg.title)}</b><div>for <b>${esc(nameOf(win))}</b></div><div class="m" style="font-size:.85rem;color:#6b5b45">${esc(shipNote(m,true))}</div>${url?`<a href="${esc(url)}" target="_blank" rel="noopener">Open the product page</a>`:""}</div>`:"";
+    const getting=heldOf(g,m);
+    mine=`<section class="panel"><div class="row" style="justify-content:space-between"><h2>Your shopping list</h2><button class="btn alt sm" data-act="copymine">Copy</button></div><div class="mylist">${buy}<div><div class="lbl">You're getting</div><div style="display:grid;gap:8px;margin-top:6px">${getting.length?getting.map(p=>giftCard(p)).join(""):'<p class="empty">Nothing this time. Ask on the call if anyone has a spare!</p>'}</div></div></div></section>`;
+  }
+  return `<div class="big-end"><h2>That's a wrap!</h2><p class="sub">Whatever you're holding is yours. Everyone buys the gift they chose and sends it to its new owner.</p></div>${mine}`;
+}
+function myText(){
+  const g=S.game,m=me();if(!m)return "";const gg=gift(m),win=holdOf(g,m);
+  const lines=[`Christmas Parcel Steal: ${nameOf(m)}'s list`,`Buy "${gg.title}" for ${nameOf(win)}. ${shipNote(m,true)}${safeUrl(gg.link||"")?" "+safeUrl(gg.link):""}`];
+  heldOf(g,m).forEach(p=>lines.push(`Getting "${gift(p).title}" from ${nameOf(p)}`));return lines.join("\n");
+}
+function shippingList(){
+  const g=S.game, o=ordOf(g);
+  const rows=o.filter(p=>holdOf(g,p)).map(p=>{const gg=gift(p),win=holdOf(g,p);
+    return `<li><b>${esc(nameOf(p))}</b> buys “${esc(gg.title||"…")}” for <b>${esc(nameOf(win))}</b><div class="flag">${esc(shipNote(p))}</div></li>`;}).join("");
+  const none=o.filter(pl=>!heldOf(g,pl).length).map(nameOf);
+  return `<section class="panel"><h2>Everyone's list</h2><ul class="ship">${rows||'<li class="empty">Nothing to post.</li>'}</ul>${none.length?`<p class="sub">Ended with nothing: ${none.map(esc).join(", ")}. Anyone with spares can share!</p>`:""}</section>`;
+}
+
+function giftView(){
+  const g=S.game, m=me();
+  if(g.phase!=="setup"&&!m)return signInPanel(true);
+  if(g.phase!=="setup")return `<section class="panel"><h2>The game has started</h2><p class="sub">Gifts are locked now. Head to the game table to play.</p><div class="preview">${parcelHTML("me",gift(m),{static:true,label:"Your parcel"})}</div></section>`;
+  if(!m&&S.ui.joinMode==="signin"&&!S.local)return signInPanel(false);
+  return giftForm();
+}
+function signInPanel(gameOn){
+  const players=ordOf(S.game);
+  return `<section class="panel" style="max-width:520px"><h2>Sign in to play</h2><p class="sub">Choose your name and enter the PIN you picked when you added your gift.</p>
+  <form class="gf" id="signinForm" novalidate>
+    <div class="field"><label for="s-who">Your name</label><select id="s-who"><option value="">Choose…</option>${players.map(p=>`<option value="${esc(p)}">${esc(nameOf(p))}</option>`).join("")}</select></div>
+    <div class="field"><label for="s-pin">Your PIN</label><input id="s-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8"></div>
+    <div class="row"><button class="btn" type="submit">Sign in</button>${gameOn?"":`<button class="btn alt" type="button" data-act="joinnew">I haven't added a gift yet</button>`}</div>
+  </form></section>`;
+}
+function giftForm(){
+  const g=S.game, m=me();
+  if(!S.ui.draft)S.ui.draft=m?Object.assign({pin:""},clone(gift(m))):{name:"",pin:"",title:"",store:"uk",country:"uk",link:"",pattern:"stripes",color:"red",size:"m"};
+  const d=S.ui.draft;
+  const radios=(name,map,val,swatch)=>`<div class="seg" role="radiogroup">${Object.entries(map).map(([k,v])=>`<label><input type="radio" name="${name}" value="${k}" ${val===k?"checked":""}>${swatch?`<span class="swatch" style="background:${COLORS[k].c1}"></span>${esc(v.label)}`:esc(v)}</label>`).join("")}</div>`;
+  const saved=S.ui.saved?`<div class="msg" role="status">Saved! Your parcel is on the table. You can change it until the game starts.</div>`:"";
+  return `<div class="two"><section class="panel"><h2>${m?"Your gift":"Join the game"}</h2>
+  <p class="sub">Spending limit: <b>${esc(g.settings.budget)}</b>. Pick something from Amazon UK or US, then wrap it. Nobody sees what's inside until it's opened in the game, and you only buy it once you know who won it.</p>
+  ${!m&&!S.local?`<p class="sub">Already added a gift? <a href="#my-gift" data-act="joinsignin">Sign in instead</a>.</p>`:""}
+  ${saved}
+  <form class="gf" id="giftForm" novalidate>
+    <div class="field"><label for="f-name">Your name</label><input id="f-name" type="text" maxlength="40" required value="${esc(d.name)}" placeholder="e.g. Gabs" ${m?"disabled":""}></div>
+    ${m?"":`<div class="field"><label for="f-pin">Choose a PIN</label><input id="f-pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" value="${esc(d.pin||"")}" placeholder="4 to 8 digits"><span class="hint">You'll use this to sign in on game night, from any device.</span></div>`}
+    <div class="field"><span class="lbl">Where should a gift be delivered to you?</span>${radios("country",{uk:"UK",us:"US"},d.country)}</div>
+    <div class="field"><label for="f-title">What's the gift?</label><input id="f-title" type="text" maxlength="120" required value="${esc(d.title||"")}" placeholder="e.g. Fuzzy reindeer bed socks"></div>
+    <div class="field"><span class="lbl">Where is it from?</span>${radios("store",STORES,d.store)}</div>
+    <div class="field"><label for="f-link">Link to it</label><input id="f-link" type="url" value="${esc(d.link||"")}" placeholder="https://www.amazon.co.uk/…"><span class="hint">Paste the product page, so the winner can see it.</span></div>
+    <div class="field"><label for="f-photo">Photo (optional)</label><div class="row">${d.photo?`<img class="photo-prev" src="${d.photo}" alt="Your gift photo">`:""}<input id="f-photo" type="file" accept="image/*"></div><span class="hint">A screenshot of the product works well.</span></div>
+    <div class="field"><span class="lbl">Wrapping paper</span>${radios("pattern",PATTERNS,d.pattern)}</div>
+    <div class="field"><span class="lbl">Colour</span>${radios("color",COLORS,d.color,true)}</div>
+    <div class="field"><span class="lbl">Parcel shape</span>${radios("size",SIZES,d.size)}<span class="hint">It doesn't have to match the real thing. Bluffing is allowed.</span></div>
+    <div class="row"><button class="btn" type="submit" ${S.ui.saving?"disabled":""}>${S.ui.saving?"Saving…":m?"Update my gift":"Put it under the tree"}</button></div>
+  </form></section>
+  <aside class="rail"><div class="panel"><h3>Your parcel</h3><div class="preview">${parcelHTML("preview",d,{static:true,label:"Preview of your parcel"})}</div><p class="hint">This is how it'll look on the table.</p></div></aside></div>`;
+}
+
+function rulesView(){
+  const s=S.game.settings;
+  const hostBox=S.isHost||S.local?"":`<section class="panel" style="max-width:68ch"><h3>Hosting from this device?</h3><p class="sub">Enter the host PIN to get the host controls here.</p><form class="row" id="claimForm" novalidate><input id="claim-pin" type="password" autocomplete="off" style="max-width:180px" aria-label="Host PIN" placeholder="Host PIN"><button class="btn sm" type="submit">Become host</button></form></section>`;
+  return `<section class="panel" style="max-width:68ch"><h2>How to play</h2>
+  <p><b>Before the call.</b> Everyone adds one gift (up to ${esc(s.budget)}) on the “My gift” tab, picks a PIN and wraps it on screen. Don't buy anything yet.</p>
+  <p><b>Round 1: Grab.</b> Everyone opens the game table on their own phone or laptop. When it's your turn, tap Roll. Roll a 6 and you pick a parcel from the middle. Keep going until the middle is empty.</p>
+  <p><b>Round 2: Steal.</b> A hidden timer starts (somewhere between ${esc(s.minMin)} and ${esc(s.maxMin)} minutes). Roll a 6 and you steal any parcel from anyone.${s.passLeft?" Roll a 3 and everyone passes their parcels to the next person.":""}</p>
+  <p><b>Round 2½: Open one.</b> Everyone opens one of their parcels at the same time. That gift is safe and can't be stolen.</p>
+  <p><b>Round 3: Open & steal.</b> Every other parcel is opened, and a second hidden timer starts (${esc(s.min2)} to ${esc(s.max2)} minutes). Now you can see what you're stealing. Roll a 6 to take any gift that isn't safe.</p>
+  <p><b>After the game.</b> Your shopping list shows the gift you chose and who won it. Order it and send it to them. If they live in the other country, buy the same thing from their local Amazon.</p></section>${hostBox}`;
+}
+
+/* ---------- modal & toast ---------- */
+function renderModal(){
+  let mo=document.getElementById("modal"); if(mo)mo.remove();
+  const p=S.ui.move; if(!p||!S.parcels[p])return; const g=S.game;
+  const opts=[`<button data-moveto="">The middle</button>`].concat(ordOf(g).map(pl=>`<button data-moveto="${esc(pl)}">${esc(nameOf(pl))}${holdOf(g,p)===pl?" (has it now)":""}</button>`)).join("");
+  mo=document.createElement("div");mo.id="modal";mo.className="modal";
+  mo.innerHTML=`<div class="box" role="dialog" aria-modal="true" aria-labelledby="mvh"><h3 id="mvh">Host: move ${g.opened[p]&&gift(p).title?"“"+esc(gift(p).title)+"”":"parcel "+numOf(g,p)} to…</h3><div class="opts">${opts}</div><button class="btn alt sm" data-act="closemove">Cancel</button></div>`;
+  document.body.appendChild(mo);
+  mo.addEventListener("click",e=>{const b=e.target.closest("[data-moveto]");if(b){moveTo(p,b.getAttribute("data-moveto"));return;}if(e.target===mo||e.target.closest('[data-act="closemove"]')){S.ui.move=null;renderModal();}});
+  const first=mo.querySelector("button");if(first)first.focus();
+}
+function renderToast(){let t=document.getElementById("toast");if(!S.ui.toast){if(t)t.remove();return;}if(!t){t=document.createElement("div");t.id="toast";t.className="toast";t.setAttribute("role","status");document.body.appendChild(t);}t.textContent=S.ui.toast;}
+
+/* ---------- events ---------- */
+function readDraft(){
+  const f=document.getElementById("giftForm"); if(!f)return; const d=S.ui.draft;
+  const nm=f.querySelector("#f-name"); if(!nm.disabled)d.name=nm.value.trim();
+  const pin=f.querySelector("#f-pin"); if(pin)d.pin=pin.value.trim();
+  d.title=f.querySelector("#f-title").value.trim(); d.link=f.querySelector("#f-link").value.trim();
+  ["country","store","pattern","color","size"].forEach(n=>{const r=f.querySelector(`input[name="${n}"]:checked`);if(r)d[n]=r.value;});
+}
+function validDraft(){const d=S.ui.draft,m=me();
+  if(!d.name)return "Add your name.";
+  if(!m&&!/^\d{4,8}$/.test(d.pin||""))return "Choose a PIN of 4 to 8 digits.";
+  if(!m&&Object.values(S.parcels).some(p=>(p.name||"").trim().toLowerCase()===d.name.toLowerCase()))return "Someone called "+d.name+" has already joined. If that's you, sign in instead.";
+  if(!d.title)return "Say what the gift is.";
+  if(d.link&&!safeUrl(d.link))return "That link doesn't look right. It should start with https://";
+  return "";}
+function bind(){
+  const app=document.getElementById("app");
+  app.querySelectorAll("[data-parcel]").forEach(b=>b.addEventListener("click",()=>{audio();clickParcel(b.getAttribute("data-parcel"));}));
+  app.querySelectorAll("[data-remove]").forEach(b=>b.addEventListener("click",()=>removePlayer(b.getAttribute("data-remove"))));
+  app.querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click",e=>{if(b.tagName==="A")e.preventDefault();act(b.getAttribute("data-act"));}));
+  const f=document.getElementById("giftForm");
+  if(f){
+    f.addEventListener("input",e=>{readDraft();S.ui.saved=false;if(e.target.type==="radio"){render();}else{const pv=document.querySelector(".preview");if(pv)pv.innerHTML=parcelHTML("preview",S.ui.draft,{static:true,label:"Preview of your parcel"});}});
+    f.addEventListener("submit",e=>{e.preventDefault();saveGift();});
+    const ph=f.querySelector("#f-photo");
+    ph.addEventListener("change",async()=>{const file=ph.files&&ph.files[0];if(!file)return;try{readDraft();S.ui.draft.photo=await shrinkPhoto(file,320,.72);render();}catch(err){toast(err.message);}});
+  }
+  const sf=document.getElementById("signinForm"); if(sf)sf.addEventListener("submit",e=>{e.preventDefault();signIn();});
+  const cf=document.getElementById("createForm"); if(cf)cf.addEventListener("submit",e=>{e.preventDefault();createGame();});
+  const kf=document.getElementById("claimForm"); if(kf)kf.addEventListener("submit",e=>{e.preventDefault();claimHost();});
+  const da=document.getElementById("demoAs"); if(da)da.addEventListener("change",()=>{S.me=da.value;S.ui.draft=null;render();});
+  ["budget","minMin","maxMin","min2","max2"].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("change",()=>setSetting(id,id==="budget"?el.value.trim().slice(0,30):Math.max(1,Math.min(60,+el.value||5))));});
+  const pl=document.getElementById("passLeft"); if(pl)pl.addEventListener("change",()=>setSetting("passLeft",pl.checked));
+}
+async function copyText(t,ok){try{await navigator.clipboard.writeText(t);toast(ok);}catch(e){toast("Couldn't copy. Select the text and copy it instead.");}}
+function act(a){
+  audio();
+  if(a==="roll")roll();
+  else if(a==="start")startGame();
+  else if(a==="steal")startSteal();
+  else if(a==="end1")endPhase("steal",false);
+  else if(a==="round3")startRound3();
+  else if(a==="end2")endPhase("steal2",false);
+  else if(a==="skip")skipTurn();
+  else if(a==="peek"){S.ui.showTime=!S.ui.showTime;render();}
+  else if(a==="new")newGame();
+  else if(a==="copylink")copyText(pageLink(),"Link copied. Send it to everyone!");
+  else if(a==="copymine")copyText(myText(),"Copied your shopping list.");
+  else if(a==="signout")signOut();
+  else if(a==="joinsignin"){S.ui.joinMode="signin";render();}
+  else if(a==="joinnew"){S.ui.joinMode="new";render();}
+}
+
+/* ---------- identity & gifts ---------- */
+async function saveGift(){
+  readDraft(); const err=validDraft(); if(err){toast(err);return;}
+  const d=S.ui.draft, m=me();
+  const parcel={name:d.name.slice(0,40),country:COUNTRY[d.country]?d.country:"uk",pattern:PATTERNS[d.pattern]?d.pattern:"stripes",color:COLORS[d.color]?d.color:"red",size:SIZES[d.size]?d.size:"m",createdAt:m&&S.parcels[m]?S.parcels[m].createdAt:Date.now()};
+  const content={title:d.title.slice(0,120),store:STORES[d.store]?d.store:"uk",link:safeUrl(d.link||"")};
+  if(typeof d.photo==="string"&&/^data:image\/jpeg;base64,/.test(d.photo)&&d.photo.length<300000)content.photo=d.photo;
+  if(S.local){const id=m||("p"+Date.now());S.parcels[id]=parcel;S.contents[id]=content;S.me=id;S.ui.saved=true;S.ui.draft=null;render();return;}
+  S.ui.saving=true;render();
+  try{
+    const b=writeBatch(S.fs);
+    let pid=m;
+    if(!pid){pid=doc(collection(S.fs,"parcels")).id;
+      b.set(doc(S.fs,"seats",S.uid),{player:pid,pin:d.pin});
+      b.set(doc(S.fs,"playerSecrets",pid),{pin:d.pin});}
+    b.set(doc(S.fs,"parcels",pid),parcel);
+    b.set(doc(S.fs,"contents",pid),content);
+    await b.commit();
+    S.contents[pid]=content; S.ui.saved=true; S.ui.draft=null;
+  }catch(e){toast(e&&e.code==="permission-denied"?"Gifts are locked now that the game has started.":"Couldn't save just now. Check your connection and try again.");}
+  S.ui.saving=false;render();
+}
+async function signIn(){
+  const who=document.getElementById("s-who").value, pin=document.getElementById("s-pin").value.trim();
+  if(!who){toast("Choose your name.");return;} if(!pin){toast("Enter your PIN.");return;}
+  try{await setDoc(doc(S.fs,"seats",S.uid),{player:who,pin:pin});toast("Hi "+nameOf(who)+"!");location.hash="#table";}
+  catch(e){toast("That PIN doesn't match. Try again.");}
+}
+async function signOut(){
+  if(S.local)return;
+  try{await deleteDoc(doc(S.fs,"seats",S.uid));S.ui.draft=null;S.ui.joinMode="signin";location.hash="#my-gift";}catch(e){toast("Couldn't switch just now.");}
+}
+async function removePlayer(id){
+  if(!S.isHost)return; const nm=nameOf(id);
+  if(S.local){delete S.parcels[id];delete S.contents[id];render();return;}
+  try{const b=writeBatch(S.fs);b.delete(doc(S.fs,"parcels",id));b.delete(doc(S.fs,"contents",id));await b.commit();toast("Removed "+nm+".");}catch(e){toast("Couldn't remove them.");}
+}
+async function createGame(){
+  const pin=(document.getElementById("c-pin").value||"").trim();
+  const budget=(document.getElementById("c-budget").value||"").trim().slice(0,30)||"£20 / $25";
+  if(pin.length<4){toast("Choose a PIN with at least 4 characters.");return;}
+  const g=defaultGame(); g.settings.budget=budget; g.hostUid=S.uid;
+  try{const b=writeBatch(S.fs);b.set(doc(S.fs,"state","main"),g);b.set(doc(S.fs,"secret","host"),{pin:pin,uid:S.uid});await b.commit();toast("Game created. You're the host! Now add your own gift.");location.hash="#my-gift";}
+  catch(e){toast("The game has already been set up. Use the host PIN on the Rules tab.");}
+}
+async function claimHost(){
+  const pin=(document.getElementById("claim-pin").value||"").trim(); if(!pin){toast("Enter the host PIN.");return;}
+  try{await setDoc(doc(S.fs,"hosts",S.uid),{pin:pin});toast("You're the host on this device now.");location.hash="#table";}
+  catch(e){toast("That PIN isn't right.");}
+}
+
+/* ---------- reacting to game changes ---------- */
+function onGame(){
+  const g=S.game;
+  // die animation for every new roll, seen by everyone
+  if(g.last&&g.last.t&&g.last.t!==S.ui.lastRollT){const first=!S.ui.lastRollT;S.ui.lastRollT=g.last.t;if(first){S.ui.face=g.last.n;}else{setTimeout(()=>animateTo(g.last.n),0);}}
+  // fetch contents of opened gifts (the rules only allow it once opened)
+  if(!S.local)Object.keys(g.opened||{}).forEach(p=>{if(!S.contents[p]&&!S.fetching[p]&&S.parcels[p]){S.fetching[p]=true;getDoc(doc(S.fs,"contents",p)).then(s=>{if(s.exists()){S.contents[p]=s.data();render();}}).catch(()=>{}).finally(()=>{delete S.fetching[p];});}});
+  // nudge when it's your turn
+  const m=me(), cur=curOf(g);
+  const key=g.phase+"|"+(ROLL_PHASES.includes(g.phase)?g.turn+"|"+g.awaiting:"")+"|"+(g.phase==="keep"&&m&&!g.kept[m]&&heldOf(g,m).length?"k":"");
+  const myMove=m&&((ROLL_PHASES.includes(g.phase)&&cur===m&&!(g.phase==="grab"&&g.grabDone))||(g.phase==="keep"&&!g.kept[m]&&heldOf(g,m).length));
+  if(key!==S.ui.turnKey){S.ui.turnKey=key;if(myMove&&!g.awaiting)chime([660,880,1320]);}
+  document.title=myMove?"🎲 Your turn! · Christmas Parcel Steal":"Christmas Parcel Steal";
+  if(!(document.getElementById("giftForm")&&view()==="my-gift"&&g.phase==="setup"))render();
+}
+
+/* ---------- timer ---------- */
+setInterval(()=>{
+  const g=S.game; if(!g||(g.phase!=="steal"&&g.phase!=="steal2"))return;
+  if(S.ui.showTime){const t=document.getElementById("timeleft");if(t)t.textContent=fmt(g.timerEnd-Date.now());}
+  const key=g.phase+g.timerEnd;
+  if(g.timerEnd&&Date.now()>=g.timerEnd&&S.ui.ending!==key&&(me()||S.isHost)){S.ui.ending=key;chime([1175,988,784,1568]);setTimeout(()=>endPhase(g.phase,true),Math.random()*800);}
+},1000);
+window.addEventListener("hashchange",()=>{S.ui.saved=false;render();});
+
+/* ---------- demo ---------- */
+function loadDemo(){
+  S.local=true;S.isHost=true;S.stateExists=true;
+  const t=Date.now();
+  [["Amy","uk","Cosy cable-knit socks","uk","stripes","red","s"],["Gabs","uk","Mini waffle maker","uk","dots","green","l"],["Sam","us","Glow-in-the-dark star map","us","check","blue","long"],["Priya","uk","Hot sauce sampler","uk","kraft","red","m"],["Jo","us","Desk cactus that sings","us","confetti","pink","tall"]]
+  .forEach((d,i)=>{S.parcels["demo"+i]={name:d[0],country:d[1],pattern:d[4],color:d[5],size:d[6],createdAt:t+i};S.contents["demo"+i]={title:d[2],store:d[3],link:""};});
+  S.me="demo0";S.game=defaultGame();S.loaded=true;render();
+}
+
+/* ---------- boot ---------- */
+let myContentUnsub=null;
+function syncHost(){S.isHost=!!S.uid&&!!S.game&&(S.game.hostUid===S.uid||S.hostClaim);}
+function watchMine(){
+  if(myContentUnsub){myContentUnsub();myContentUnsub=null;}
+  if(!S.me)return;
+  myContentUnsub=onSnapshot(doc(S.fs,"contents",S.me),snap=>{if(snap.exists()){S.contents[S.me]=snap.data();if(!document.getElementById("giftForm"))render();}},()=>{});
+}
+function boot(){
+  if(new URLSearchParams(location.search).has("demo")||!firebaseConfig.apiKey){loadDemo();return;}
+  const app=initializeApp(firebaseConfig); const auth=getAuth(app); S.fs=getFirestore(app);
+  const slow=setTimeout(()=>{if(!S.loaded){document.getElementById("app").innerHTML=`<p class="sub">Still connecting… If this doesn't load, check your internet connection and refresh.</p>`;}},10000);
+  signInAnonymously(auth).catch(()=>{document.getElementById("app").innerHTML=`<p class="sub">Couldn't connect to the game. Refresh the page to try again.</p>`;});
+  let started=false;
+  onAuthStateChanged(auth,user=>{
+    if(!user||started)return; started=true; S.uid=user.uid;
+    let gotState=false,gotParcels=false,gotSeat=false;
+    const ready=()=>{if(gotState&&gotParcels&&gotSeat&&!S.loaded){S.loaded=true;clearTimeout(slow);onGame();}};
+    onSnapshot(doc(S.fs,"state","main"),snap=>{
+      gotState=true; S.stateExists=snap.exists();
+      const prevPhase=S.game&&S.game.phase;
+      S.game=normalize(snap.exists()?snap.data():null);
+      if(prevPhase&&prevPhase!=="setup"&&S.game.phase==="setup"){const mine=S.me&&S.contents[S.me];S.contents={};if(mine)S.contents[S.me]=mine;}
+      syncHost(); if(S.loaded)onGame(); else ready();
+    },()=>{toast("Lost connection to the table. Refresh the page.");});
+    onSnapshot(collection(S.fs,"parcels"),snap=>{
+      const m={};snap.forEach(d=>{m[d.id]=d.data();});S.parcels=m;gotParcels=true;
+      if(S.loaded)onGame(); else ready();
+    },()=>{gotParcels=true;ready();});
+    onSnapshot(doc(S.fs,"seats",S.uid),snap=>{
+      const p=snap.exists()?snap.data().player:null; gotSeat=true;
+      if(p!==S.me){S.me=p;S.ui.draft=null;watchMine();}
+      if(S.loaded)onGame(); else ready();
+    },()=>{gotSeat=true;ready();});
+    onSnapshot(doc(S.fs,"hosts",S.uid),snap=>{S.hostClaim=snap.exists();syncHost();if(S.loaded)render();},()=>{});
+  });
+}
+boot();
+</script>
+</body>
+</html>
